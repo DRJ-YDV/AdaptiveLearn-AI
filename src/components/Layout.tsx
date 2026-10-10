@@ -17,11 +17,13 @@ import {
   AlertTriangle,
   ArrowRight,
   CalendarDays,
-  Sparkles
+  Sparkles,
+  NotebookPen
 } from 'lucide-react';
 import { courseRepository } from '../services/courseRepository';
 import { learnerModelService } from '../services/learnerModelService';
 import type { Concept } from '../types/domain';
+import { BrandLogo } from './BrandLogo';
 
 const navItems = [
   { path: '/', label: 'Product Home', icon: Sparkles },
@@ -32,6 +34,7 @@ const navItems = [
   { path: '/app/assessment', label: 'Adaptive Assessment', icon: BrainCircuit },
   { path: '/app/progress', label: 'Learning Progress', icon: Activity },
   { path: '/app/study-plan', label: 'Study Plan', icon: CalendarDays },
+  { path: '/app/revision-kit', label: 'Revision Kit', icon: NotebookPen },
   { path: '/app/evaluation', label: 'Evaluation & Benchmarks', icon: TrendingUp },
 ];
 
@@ -79,7 +82,7 @@ export const Layout: React.FC = () => {
     <div className="app-container">
       <aside className="sidebar">
         <div className="sidebar-header">
-          <div className="logo-text">AdaptiveLearn AI</div>
+          <BrandLogo />
         </div>
         <nav className="nav-links">
           {navItems.map((item) => {

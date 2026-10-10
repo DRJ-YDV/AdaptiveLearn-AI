@@ -4,6 +4,7 @@ import { Book, Video, MonitorPlay, Send, Brain, AlertTriangle, ArrowRight, Light
 import { tutorService } from '../services/tutorService';
 import { courseRepository } from '../services/courseRepository';
 import { learnerModelService } from '../services/learnerModelService';
+import { FormattedAnswer } from '../components/FormattedAnswer';
 import { TutorMessage, SourceReference, Concept, Topic } from '../types/domain';
 
 type SpeechRecognitionLike = {
@@ -17,6 +18,11 @@ type SpeechRecognitionLike = {
   stop: () => void;
 };
 type SpeechRecognitionWindow = Window & { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike };
+
+interface TutorSource {
+  sourceId: string;
+  sourceTitle: string;
+}
 
 export const Tutor: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -32,6 +38,14 @@ export const Tutor: React.FC = () => {
   const [isListening, setIsListening] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const [voiceError, setVoiceError] = useState('');
+  const [tutorSources, setTutorSources] = useState<TutorSource[]>([]);
+  const [sourcesLoading, setSourcesLoading] = useState(true);
+  const [sourcesError, setSourcesError] = useState('');
+  const [selectedSourceId, setSelectedSourceId] = useState('all');
+  const [responseLanguage, setResponseLanguage] = useState<'english' | 'hindi' | 'hinglish'>(() => {
+    const saved = localStorage.getItem('adaptivelearn:tutor-language');
+    return saved === 'hindi' || saved === 'hinglish' ? saved : 'english';
+  });
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   // Context State
@@ -51,6 +65,10 @@ export const Tutor: React.FC = () => {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   }, []);
 
+  useEffect(() => {
+    localStorage.setItem('adaptivelearn:tutor-language', responseLanguage);
+  }, [responseLanguage]);
+
   const toggleVoiceInput = () => {
     if (isListening) {
       recognitionRef.current?.stop();
@@ -65,7 +83,7 @@ export const Tutor: React.FC = () => {
     }
     setVoiceError('');
     const recognition = new SpeechRecognition();
-    recognition.lang = navigator.language || 'en-US';
+    recognition.lang = responseLanguage === 'english' ? (navigator.language || 'en-US') : 'hi-IN';
     recognition.interimResults = false;
     recognition.continuous = false;
     recognition.onresult = event => {
@@ -95,6 +113,7 @@ export const Tutor: React.FC = () => {
     }
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(message.content);
+    utterance.lang = responseLanguage === 'english' ? 'en-US' : 'hi-IN';
     utterance.onend = () => setSpeakingMessageId(null);
     utterance.onerror = () => setSpeakingMessageId(null);
     setSpeakingMessageId(message.id);
@@ -108,6 +127,31 @@ export const Tutor: React.FC = () => {
         setServiceStatus(response.ok && health.ok ? (health.geminiConfigured ? 'ready' : 'needs-key') : 'offline');
       })
       .catch(() => setServiceStatus('offline'));
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetch('http://localhost:3001/api/vector/chunks?courseId=course_ml_101')
+      .then(async response => {
+        if (!response.ok) throw new Error('Could not load uploaded course materials.');
+        return await response.json() as { chunks?: Array<{ metadata?: { sourceId?: string; sourceTitle?: string } }> };
+      })
+      .then(data => {
+        if (!active) return;
+        const sources = new globalThis.Map<string, string>();
+        for (const chunk of data.chunks ?? []) {
+          const sourceId = chunk.metadata?.sourceId;
+          const sourceTitle = chunk.metadata?.sourceTitle;
+          if (sourceId && sourceTitle && !sourceId.startsWith('src_')) sources.set(sourceId, sourceTitle);
+        }
+        setTutorSources([...sources].map(([sourceId, sourceTitle]) => ({ sourceId, sourceTitle }))
+          .sort((a, b) => a.sourceTitle.localeCompare(b.sourceTitle)));
+      })
+      .catch(error => {
+        if (active) setSourcesError(error instanceof Error ? error.message : 'Could not load uploaded course materials.');
+      })
+      .finally(() => { if (active) setSourcesLoading(false); });
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
@@ -150,9 +194,12 @@ export const Tutor: React.FC = () => {
       const response = await tutorService.ask(userMessage.content, {
         courseId: 'course_ml_101',
         userId: 'user_1',
-        conceptId: currentConcept?.id,
-        focus: [currentTopic?.name, currentConcept?.name].filter(Boolean).join(': ') || undefined,
-        sourceIds: currentConcept ? [...new Set(currentConcept.sourceReferences.map(reference => reference.sourceId))] : undefined
+        conceptId: selectedSourceId === 'all' ? currentConcept?.id : undefined,
+        focus: selectedSourceId === 'all' ? [currentTopic?.name, currentConcept?.name].filter(Boolean).join(': ') || undefined : undefined,
+        sourceIds: selectedSourceId === 'all'
+          ? currentConcept ? [...new Set(currentConcept.sourceReferences.map(reference => reference.sourceId))] : undefined
+          : [selectedSourceId],
+        responseLanguage
       });
 
       const tutorMessage: TutorMessage = {
@@ -181,6 +228,17 @@ export const Tutor: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSourceChange = (sourceId: string) => {
+    setSelectedSourceId(sourceId);
+    setMessages([]);
+    setConversationRatings({});
+    setError('');
+    setSelectedEvidence(null);
+    setEvidenceConcept(null);
+    setCurrentConcept(null);
+    setCurrentTopic(null);
   };
 
   const handleViewEvidence = async (evidence: SourceReference, conceptId?: string) => {
@@ -238,6 +296,20 @@ export const Tutor: React.FC = () => {
               <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Answers grounded in indexed sources</div>
             </div>
           </div>
+          <label htmlFor="tutor-source" style={{ display: 'flex', flexDirection: 'column', gap: '6px', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+            Ask about
+            <select
+              id="tutor-source"
+              value={selectedSourceId}
+              onChange={event => handleSourceChange(event.target.value)}
+              disabled={sourcesLoading || isLoading}
+              style={{ width: '100%', minWidth: 0, padding: '9px 10px', color: 'var(--text-primary)', backgroundColor: 'var(--bg-base)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-md)' }}
+            >
+              <option value="all">All uploaded materials</option>
+              {tutorSources.map(source => <option key={source.sourceId} value={source.sourceId}>{source.sourceTitle}</option>)}
+            </select>
+          </label>
+          {sourcesError && <p role="status" style={{ margin: 'var(--space-2) 0 0', color: 'var(--status-warning)', fontSize: '0.78rem' }}>{sourcesError}</p>}
         </div>
 
         {currentTopic && (
@@ -284,9 +356,9 @@ export const Tutor: React.FC = () => {
                 borderRadius: 'var(--radius-lg)', 
                 backgroundColor: msg.role === 'USER' ? 'var(--accent-primary)' : 'var(--bg-base)',
                 border: msg.role === 'TUTOR' ? '1px solid var(--border-subtle)' : 'none',
-                color: msg.role === 'USER' ? 'white' : 'var(--text-primary)'
+                color: msg.role === 'USER' ? '#000000' : 'var(--text-primary)'
               }}>
-                <p style={{ lineHeight: 1.6, fontSize: '0.95rem' }}>{msg.content}</p>
+                {msg.role === 'TUTOR' ? <FormattedAnswer content={msg.content} /> : <p style={{ lineHeight: 1.6, fontSize: '0.95rem', whiteSpace: 'pre-wrap' }}>{msg.content}</p>}
                 {msg.role === 'TUTOR' && <button type="button" className="btn-text" onClick={() => toggleSpeechOutput(msg)} aria-label={speakingMessageId === msg.id ? 'Stop reading answer aloud' : 'Read answer aloud'} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 'var(--space-2)' }}>
                   {speakingMessageId === msg.id ? <Square size={14} /> : <Volume2 size={15} />}{speakingMessageId === msg.id ? 'Stop audio' : 'Listen'}
                 </button>}
@@ -378,6 +450,15 @@ export const Tutor: React.FC = () => {
         </div>
 
         <div style={{ padding: 'var(--space-4)', borderTop: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-base)' }}>
+          <label htmlFor="tutor-response-language" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+            Response language
+            <select id="tutor-response-language" value={responseLanguage} onChange={event => setResponseLanguage(event.target.value as typeof responseLanguage)} style={{ padding: '6px 10px', color: 'var(--text-primary)', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-md)' }}>
+              <option value="english">English</option>
+              <option value="hindi">Hindi</option>
+              <option value="hinglish">Hindi + English (Hinglish)</option>
+            </select>
+          </label>
+          {import.meta.env.VITE_LLM_PROVIDER !== 'gemini' && <p style={{ margin: '0 0 var(--space-2)', color: 'var(--text-tertiary)', fontSize: '0.76rem' }}>Language selection for generated answers requires Gemini mode (VITE_LLM_PROVIDER=gemini).</p>}
           {voiceError && <p role="status" style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: '0 0 var(--space-2)' }}>{voiceError}</p>}
           {isListening && <p role="status" style={{ color: 'var(--accent-secondary)', fontSize: '0.82rem', margin: '0 0 var(--space-2)' }}>Listening… Your transcript will appear here for review before you send it.</p>}
           <div style={{ display: 'flex', gap: 'var(--space-2)' }}>

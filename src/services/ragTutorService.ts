@@ -56,7 +56,11 @@ export class RAGTutorService implements ITutorService {
     
     let llmResponse;
     try {
-      llmResponse = await this.llmProvider.generateGroundedAnswer(question, chunks, { ...contextMetadata, focus: context.focus });
+      llmResponse = await this.llmProvider.generateGroundedAnswer(question, chunks, {
+        ...contextMetadata,
+        focus: context.focus,
+        responseLanguage: context.responseLanguage ?? 'english'
+      });
       
       // Defend against malformed LLM responses
       if (!llmResponse || typeof llmResponse.groundingResult?.isGrounded !== 'boolean') {

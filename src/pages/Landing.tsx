@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowDownRight, ArrowRight, AudioLines, BookOpen, BrainCircuit, CirclePlay, FileText, Network, Sparkles, Target, WandSparkles } from 'lucide-react';
+import { BrandLogo } from '../components/BrandLogo';
 
 const features = [
   { number: '01', icon: BookOpen, title: 'Your material, understood', text: 'Turn lectures and course files into a searchable foundation for everything you learn.' },
@@ -10,7 +11,7 @@ const features = [
 
 export const Landing: React.FC = () => <main className="landing-page">
   <nav className="landing-nav" aria-label="Main navigation">
-    <Link to="/" className="landing-brand"><span className="landing-brand-mark"><Sparkles size={16} /></span>AdaptiveLearn<span>AI</span></Link>
+    <BrandLogo />
     <div className="landing-nav-links"><a href="#how-it-works">How it works</a><a href="#tools">Learning tools</a><Link className="landing-nav-cta" to="/app">Open dashboard <ArrowRight size={15} /></Link></div>
   </nav>
 
@@ -50,5 +51,5 @@ export const Landing: React.FC = () => <main className="landing-page">
 
   <section className="landing-final-cta"><div className="landing-final-ornament"><span /><span /><span /></div><div className="landing-kicker"><span /> YOUR NEXT SESSION STARTS HERE</div><h2>Make your course<br />work <em>for you.</em></h2><p>Start with the material you already have.</p><Link to="/app/courses" className="landing-primary-cta">Start learning <ArrowRight size={17} /></Link></section>
 
-  <footer className="landing-footer"><Link to="/" className="landing-brand"><span className="landing-brand-mark"><Sparkles size={14} /></span>AdaptiveLearn<span>AI</span></Link><span>Learn from your material. Grow at your pace.</span><Link to="/app" className="landing-footer-link">Go to dashboard <ArrowRight size={14} /></Link></footer>
+  <footer className="landing-footer"><BrandLogo /><span>Learn from your material. Grow at your pace.</span><Link to="/app" className="landing-footer-link">Go to dashboard <ArrowRight size={14} /></Link></footer>
 </main>;

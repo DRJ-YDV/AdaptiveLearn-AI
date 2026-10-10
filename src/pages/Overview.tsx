@@ -66,6 +66,16 @@ export const Overview: React.FC = () => {
     else navigate(`/app/courses`);
   };
 
+  const topicMastery = topics.map(topic => {
+    const scores = concepts.filter(concept => concept.topicId === topic.id)
+      .map(concept => learner?.masteryStates[concept.id]?.masteryScore)
+      .filter((score): score is number => score !== undefined);
+    const average = scores.length ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length * 100) : null;
+    const level = average === null ? 'new' : average >= 75 ? 'strong' : average >= 50 ? 'growing' : 'focus';
+    return { topic, average, level };
+  });
+  const assessedTopicCount = topicMastery.filter(item => item.average !== null).length;
+
   return (
     <div className="dashboard-grid overview-dashboard animate-fade-in">
       <div className="main-column">
@@ -179,24 +189,25 @@ export const Overview: React.FC = () => {
       </div>
 
       <div className="side-panel">
-        <div className="panel-card animate-fade-in delay-1">
-          <div className="panel-title">
-            Current Mastery
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontWeight: 'normal' }}>From your assessment results</span>
+        <div className="panel-card mastery-overview-card animate-fade-in delay-1">
+          <div className="mastery-panel-header">
+            <div className="mastery-heading-icon"><Activity size={17} /></div>
+            <div className="mastery-heading-copy"><h3>Current Mastery</h3><p>Progress by topic</p></div>
+            <span className="mastery-count">{assessedTopicCount}<i> / {topics.length} assessed</i></span>
           </div>
-          <div className="metric-list">
-            {topics.map(topic => {
-              const states = concepts.filter(concept => concept.topicId === topic.id)
-                .map(concept => learner?.masteryStates[concept.id]?.masteryScore)
-                .filter((score): score is number => score !== undefined);
-              const average = states.length ? Math.round(states.reduce((sum, score) => sum + score, 0) / states.length * 100) : null;
-              return (
-                <div className="metric-item" key={topic.id}>
-                  <div className="metric-label">{topic.name}</div>
-                  <div className="metric-value">{average === null ? '—' : `${average}%`}</div>
+          <div className="metric-list mastery-topic-list">
+            {topicMastery.map(({ topic, average, level }) => (
+              <div className={`mastery-topic mastery-${level}`} key={topic.id}>
+                <div className="mastery-topic-top">
+                  <span className="mastery-topic-name" title={topic.name}>{topic.name}</span>
+                  <span className="mastery-topic-score">{average === null ? 'New' : `${average}%`}</span>
                 </div>
-              );
-            })}
+                <div className="mastery-topic-track" aria-label={average === null ? `${topic.name}: not assessed yet` : `${topic.name}: ${average}% mastery`}>
+                  <span style={{ width: `${average ?? 0}%` }} />
+                </div>
+              </div>
+            ))}
+            {topics.length === 0 && <p className="mastery-empty">Add course material to see mastery by topic.</p>}
           </div>
           <button className="btn-secondary" onClick={() => navigate('/app/knowledge-map')} style={{ width: '100%', justifyContent: 'center', marginTop: 'var(--space-5)' }}>
             View Knowledge Map

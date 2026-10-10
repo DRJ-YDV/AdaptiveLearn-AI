@@ -14,6 +14,7 @@ export interface TutorContext {
   conceptId?: ID;
   focus?: string;
   sourceIds?: ID[];
+  responseLanguage?: 'english' | 'hindi' | 'hinglish';
 }
 
 export interface ITutorService {

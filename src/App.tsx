@@ -9,6 +9,7 @@ import { CourseIngestion } from './pages/CourseIngestion';
 import { Evaluation } from './pages/Evaluation';
 import { Progress } from './pages/Progress';
 import { StudyPlanPage } from './pages/StudyPlan';
+import { RevisionKit } from './pages/RevisionKit';
 import { Landing } from './pages/Landing';
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
         <Route path="/evaluation" element={<Navigate to="/app/evaluation" replace />} />
         <Route path="/progress" element={<Navigate to="/app/progress" replace />} />
         <Route path="/study-plan" element={<Navigate to="/app/study-plan" replace />} />
+        <Route path="/revision-kit" element={<Navigate to="/app/revision-kit" replace />} />
         <Route path="/app" element={<Layout />}>
           <Route index element={<Overview />} />
           <Route path="courses" element={<CourseIngestion />} />
@@ -35,6 +37,7 @@ function App() {
           <Route path="evaluation" element={<Evaluation />} />
           <Route path="progress" element={<Progress />} />
           <Route path="study-plan" element={<StudyPlanPage />} />
+          <Route path="revision-kit" element={<RevisionKit />} />
         </Route>
       </Routes>
     </BrowserRouter>

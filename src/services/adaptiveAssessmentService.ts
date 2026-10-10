@@ -63,6 +63,9 @@ export class AdaptiveAssessmentService {
       const normalize = (prompt: string) => prompt.toLocaleLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
       const newQuestions = (data.questions as Question[]).filter(question => !previousPrompts.some(prompt => normalize(prompt) === normalize(question.prompt)));
       if (newQuestions.length === 0) throw new Error('The generator repeated questions from earlier assessments. Try again or choose another topic.');
+      if (newQuestions.length < count) {
+        throw new Error(`Only ${newQuestions.length} distinct, verifiable questions could be generated from this material. Choose a smaller quiz or a broader scope.`);
+      }
       try {
         localStorage.setItem(noveltyKey, JSON.stringify([...previousPrompts, ...newQuestions.map(question => question.prompt)].slice(-100)));
       } catch { /* An unavailable novelty cache should not block an otherwise valid assessment. */ }
@@ -71,6 +74,9 @@ export class AdaptiveAssessmentService {
     const learner = this.learners.getLearnerModel(userId, courseId);
     const scopedQuestions = demoQuestions.filter(question => inScope.some(concept => concept.id === question.conceptId));
     if (scopedQuestions.length === 0) return [];
+    if (scopedQuestions.length < count) {
+      throw new Error(`This topic has only ${scopedQuestions.length} prepared questions. Choose a smaller quiz or All topics.`);
+    }
 
     // Prefer questions not seen recently across previous assessments. Once the
     // scoped bank has been exhausted, the least recently answered questions

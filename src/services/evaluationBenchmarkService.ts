@@ -57,6 +57,11 @@ export class EvaluationBenchmarkService {
     localStorage.setItem(`${STORAGE_PREFIX}${benchmark.sourceId}`, JSON.stringify(benchmark));
   }
 
+  remove(sourceId: string): void {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.removeItem(`${STORAGE_PREFIX}${sourceId}`);
+  }
+
   private sampleChunks(chunks: DocumentChunk[]): DocumentChunk[] {
     const pages = chunks.filter(chunk => /^Page\s+\d+/i.test(chunk.metadata.location));
     if (pages.length <= 40) return pages;

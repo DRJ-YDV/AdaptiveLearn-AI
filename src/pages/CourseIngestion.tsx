@@ -1,17 +1,96 @@
-import React, { useState } from 'react';
-import { UploadCloud, CheckCircle, XCircle, FileText, Settings, ArrowRight } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { UploadCloud, CheckCircle, XCircle, FileText, Settings, ArrowRight, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { CourseIndexingService } from '../services/ingestion/courseIndexingService';
 import { vectorStore } from '../services/tutorService';
 import { IngestionJob } from '../types/ingestion';
+import { courseRepository } from '../services/courseRepository';
+import { evaluationBenchmarkService } from '../services/evaluationBenchmarkService';
+import { revisionMaterialsService } from '../services/revisionMaterialsService';
+
+interface IndexedSource {
+  sourceId: string;
+  sourceTitle: string;
+  chunkCount: number;
+}
 
 export const CourseIngestion: React.FC = () => {
   const navigate = useNavigate();
   const [dragActive, setDragActive] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [job, setJob] = useState<IngestionJob | null>(null);
+  const [indexedSources, setIndexedSources] = useState<IndexedSource[]>([]);
+  const [sourcesLoading, setSourcesLoading] = useState(true);
+  const [sourcesError, setSourcesError] = useState('');
+  const [deletingSourceId, setDeletingSourceId] = useState('');
 
   const indexingService = new CourseIndexingService(vectorStore);
+
+  const fetchIndexedSources = useCallback(async (): Promise<IndexedSource[]> => {
+    const response = await fetch('http://localhost:3001/api/vector/chunks?courseId=course_ml_101');
+    if (!response.ok) throw new Error('Could not load indexed course materials.');
+    const data = await response.json() as { chunks?: Array<{ metadata?: { sourceId?: string; sourceTitle?: string } }> };
+    const bySource = new Map<string, IndexedSource>();
+    for (const chunk of data.chunks ?? []) {
+      const sourceId = chunk.metadata?.sourceId;
+      const sourceTitle = chunk.metadata?.sourceTitle;
+      if (!sourceId || !sourceTitle || sourceId.startsWith('src_')) continue;
+      const source = bySource.get(sourceId) ?? { sourceId, sourceTitle, chunkCount: 0 };
+      source.chunkCount += 1;
+      bySource.set(sourceId, source);
+    }
+    return [...bySource.values()].sort((a, b) => a.sourceTitle.localeCompare(b.sourceTitle));
+  }, []);
+
+  const refreshIndexedSources = useCallback(async () => {
+    setSourcesLoading(true);
+    setSourcesError('');
+    try {
+      setIndexedSources(await fetchIndexedSources());
+    } catch (error) {
+      setSourcesError(error instanceof Error ? error.message : 'Could not load indexed course materials.');
+    } finally {
+      setSourcesLoading(false);
+    }
+  }, [fetchIndexedSources]);
+
+  useEffect(() => {
+    let active = true;
+    fetchIndexedSources().then(sources => {
+      if (active) setIndexedSources(sources);
+    }).catch(error => {
+      if (active) setSourcesError(error instanceof Error ? error.message : 'Could not load indexed course materials.');
+    }).finally(() => {
+      if (active) setSourcesLoading(false);
+    });
+    return () => { active = false; };
+  }, [fetchIndexedSources]);
+
+  const deleteIndexedSource = async (source: IndexedSource) => {
+    if (!window.confirm(`Delete “${source.sourceTitle}” and remove its indexed content, topics, and PDF benchmark?`)) return;
+    setDeletingSourceId(source.sourceId);
+    setSourcesError('');
+    try {
+      const response = await fetch(`http://localhost:3001/api/sources/${encodeURIComponent(source.sourceId)}`, { method: 'DELETE' });
+      const responseText = await response.text();
+      let payload: { error?: string } = {};
+      try { payload = JSON.parse(responseText) as { error?: string }; } catch { /* The server may return an HTML error page. */ }
+      if (!response.ok) {
+        const message = payload.error || (response.status === 404
+          ? 'The delete endpoint is unavailable. Restart the backend server, then retry.'
+          : `Delete failed (${response.status}${response.statusText ? ` ${response.statusText}` : ''}).`);
+        throw new Error(message);
+      }
+      courseRepository.removeIngestedSource('course_ml_101', source.sourceId);
+      evaluationBenchmarkService.remove(source.sourceId);
+      revisionMaterialsService.remove(source.sourceId);
+      await refreshIndexedSources();
+    } catch (error) {
+      setSourcesError(error instanceof Error ? error.message : 'Could not delete this course material.');
+    } finally {
+      setDeletingSourceId('');
+    }
+  };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -74,9 +153,34 @@ export const CourseIngestion: React.FC = () => {
           </p>
         </div>
 
+        <section className="nba-card" style={{ padding: 'var(--space-6)', order: 2 }} aria-labelledby="indexed-materials-heading">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
+            <div>
+              <h2 id="indexed-materials-heading" style={{ fontSize: '1.2rem', marginBottom: 'var(--space-1)' }}>Indexed course materials</h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Manage uploaded files and their indexed content.</p>
+            </div>
+            <button type="button" className="btn-secondary" onClick={() => void refreshIndexedSources()} disabled={sourcesLoading}>
+              {sourcesLoading ? 'Refreshing…' : 'Refresh'}
+            </button>
+          </div>
+          {sourcesError && <p role="alert" style={{ color: 'var(--status-error)', marginBottom: 'var(--space-3)' }}>{sourcesError}</p>}
+          {!sourcesLoading && indexedSources.length === 0 && !sourcesError && <p style={{ color: 'var(--text-tertiary)' }}>No uploaded materials are currently indexed.</p>}
+          {indexedSources.length > 0 && <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            {indexedSources.map(source => <div key={source.sourceId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-3)', padding: '12px', backgroundColor: 'var(--bg-base)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
+                <FileText size={18} color="var(--accent-secondary)" />
+                <div style={{ minWidth: 0 }}><div style={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{source.sourceTitle}</div><div style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem' }}>{source.chunkCount} indexed content {source.chunkCount === 1 ? 'unit' : 'units'}</div></div>
+              </div>
+              <button type="button" className="btn-secondary" onClick={() => void deleteIndexedSource(source)} disabled={deletingSourceId === source.sourceId} aria-label={`Delete ${source.sourceTitle}`} title="Delete uploaded material" style={{ color: 'var(--status-error)', flexShrink: 0 }}>
+                <Trash2 size={16} /> {deletingSourceId === source.sourceId ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>)}
+          </div>}
+        </section>
+
         {/* Upload Zone */}
         {!job && (
-          <div className="nba-card" style={{ padding: 'var(--space-8)' }}>
+          <div className="nba-card" style={{ padding: 'var(--space-8)', order: 1 }}>
             <div 
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
@@ -135,7 +239,7 @@ export const CourseIngestion: React.FC = () => {
 
         {/* Progress View */}
         {job && (
-          <div className="nba-card" style={{ padding: 'var(--space-8)' }}>
+          <div className="nba-card" style={{ padding: 'var(--space-8)', order: 1 }}>
             <h3 style={{ fontSize: '1.4rem', marginBottom: 'var(--space-2)' }}>Ingestion Status: {job.status}</h3>
             {job.detail && <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>{job.detail}</p>}
             

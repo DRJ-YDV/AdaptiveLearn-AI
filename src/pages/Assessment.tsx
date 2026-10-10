@@ -340,7 +340,7 @@ export const Assessment: React.FC = () => {
             </select>
             <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Length</label>
             <div className="assessment-length-options" style={{ display: 'flex', gap: 'var(--space-3)' }}>
-              {[3, 5, 10, 15].map(n => (
+              {[3, 5, 10, 15, 20].map(n => (
                 <button 
                   key={n}
                   onClick={() => setQuestionCount(n)}

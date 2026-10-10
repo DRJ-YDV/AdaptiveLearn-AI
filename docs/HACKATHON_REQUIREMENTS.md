@@ -23,7 +23,10 @@ This checklist compares the current prototype with the supplied Multimodal AI Ha
 ## Optional features and deliverables
 
 - **Visual course map:** Present; prerequisite edges appear when supported relations are extracted.
-- **Revision materials, study schedule, mixed-language and audio tutoring:** Not implemented.
+- **Study schedule:** Implemented in the Study Plan dashboard. It schedules concepts around the learner's exam date, selected study days, and available minutes; it prioritizes weak concepts and prerequisites and tracks completed sessions. It does not send reminders or sync with calendars.
+- **Audio tutoring:** Partially implemented with browser speech recognition for dictation and browser speech synthesis for reading tutor replies aloud. Browser support and voice quality vary.
+- **Revision materials:** Implemented in the Revision Kit dashboard. Gemini creates structured study notes, key points, and flashcards from a selected indexed source. Flashcards carry source locations, kits persist in browser storage, and learners can download Markdown. Generated content is a draft and should be checked against the source.
+- **Mixed-language tutoring:** Implemented as English, Hindi, and Hindi-English Hinglish response choices in AI Tutor. Language instructions apply when Gemini mode is enabled; the deterministic mock provider remains English-only. Voice recognition and read-aloud use a matching browser language where supported.
 - **Project documentation:** Architecture, grounding, learner-model method, setup, and evaluation boundaries are in the root README.
 - **Demonstration video:** A timed recording script is prepared at `docs/DEMO_VIDEO_SCRIPT.md`; the video still needs to be recorded and published on YouTube.
 

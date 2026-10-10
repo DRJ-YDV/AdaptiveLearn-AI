@@ -110,6 +110,23 @@ export class CourseRepository {
     this.courseMapSyncs.delete(courseId);
   }
 
+  removeIngestedSource(courseId: ID, sourceId: ID): void {
+    if (typeof localStorage === 'undefined') return;
+    const stored = this.getStoredMap(courseId);
+    const removedTopicIds = new Set(stored.topics.filter(topic => topic.sourceId === sourceId).map(topic => topic.id));
+    stored.topics = stored.topics.filter(topic => topic.sourceId !== sourceId);
+    stored.concepts = stored.concepts
+      .filter(concept => !removedTopicIds.has(concept.topicId) && !concept.sourceReferences.some(reference => reference.sourceId === sourceId))
+      .map(concept => ({
+        ...concept,
+        prerequisites: concept.prerequisites.filter(prerequisite => !stored.concepts.some(removed =>
+          removed.id === prerequisite.conceptId && (removedTopicIds.has(removed.topicId) || removed.sourceReferences.some(reference => reference.sourceId === sourceId))
+        ))
+      }));
+    localStorage.setItem(this.getStorageKey(courseId), JSON.stringify(stored));
+    this.courseMapSyncs.delete(courseId);
+  }
+
   private async syncStoredMapFromIndex(courseId: ID): Promise<void> {
     if (typeof localStorage === 'undefined') return;
     const existingSync = this.courseMapSyncs.get(courseId);
