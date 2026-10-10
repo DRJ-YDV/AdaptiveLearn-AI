@@ -3,6 +3,15 @@ import { demoQuestions } from '../data/questionBank';
 import { courseRepository } from './courseRepository';
 import { learnerModelService, LearnerModelService } from './learnerModelService';
 
+const isConceptInAssessmentScope = (concept: Concept, scopeId?: ID): boolean => {
+  if (!scopeId) return true;
+  if (scopeId.startsWith('source:')) {
+    const sourceId = scopeId.slice('source:'.length);
+    return concept.sourceReferences.some(reference => reference.sourceId === sourceId);
+  }
+  return concept.topicId === scopeId || concept.id === scopeId;
+};
+
 export interface AdaptiveSelection {
   question: Question;
   reason: string;
@@ -26,7 +35,7 @@ export class AdaptiveAssessmentService {
 
   async generateQuestionSet(userId: ID, courseId: ID, count: number, scopeId?: ID): Promise<Question[]> {
     const concepts = await courseRepository.getConceptsByCourse(courseId);
-    const inScope = concepts.filter(concept => !scopeId || concept.topicId === scopeId || concept.id === scopeId);
+    const inScope = concepts.filter(concept => isConceptInAssessmentScope(concept, scopeId));
     if (inScope.some(concept => concept.id.startsWith('uploaded-'))) {
       const learner = this.learners.getLearnerModel(userId, courseId);
       const noveltyKey = `adaptivelearn:question-prompts:${courseId}`;
@@ -118,7 +127,7 @@ export class AdaptiveAssessmentService {
       .filter(question => (question.options?.length ?? 0) >= 2);
     const questionPool = generatedQuestions ?? (uploadedQuestions.length > 0 ? uploadedQuestions : demoQuestions);
     const scopeConceptIds = concepts.length > 0
-      ? new Set(concepts.filter(concept => !scopeId || concept.topicId === scopeId || concept.id === scopeId).map(concept => concept.id))
+      ? new Set(concepts.filter(concept => isConceptInAssessmentScope(concept, scopeId)).map(concept => concept.id))
       : new Set(generatedQuestions?.map(question => question.conceptId) ?? []);
     const availableQuestions = questionPool.filter(q =>
       scopeConceptIds.has(q.conceptId) && !attemptedQuestionIds.has(q.id)

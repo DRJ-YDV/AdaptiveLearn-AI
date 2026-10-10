@@ -13,8 +13,9 @@ export class RAGTutorService implements ITutorService {
   async ask(question: string, context: TutorContext): Promise<TutorResponse> {
     // 1. Retrieve relevant chunks
     const retrievalResponse = await this.retriever.retrieve({
-      text: question,
+      text: context.focus ? `${question}\nCurrent learning focus: ${context.focus}` : question,
       courseId: context.courseId,
+      sourceIds: context.sourceIds,
       topK: 3,
       minSimilarity: 0.15 // Threshold for deciding if we have ANY relevant info
     });
@@ -55,7 +56,7 @@ export class RAGTutorService implements ITutorService {
     
     let llmResponse;
     try {
-      llmResponse = await this.llmProvider.generateGroundedAnswer(question, chunks, contextMetadata);
+      llmResponse = await this.llmProvider.generateGroundedAnswer(question, chunks, { ...contextMetadata, focus: context.focus });
       
       // Defend against malformed LLM responses
       if (!llmResponse || typeof llmResponse.groundingResult?.isGrounded !== 'boolean') {

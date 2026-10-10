@@ -132,7 +132,7 @@ export const Assessment: React.FC = () => {
     if (isDiagnostic) learnerModelService.completeDiagnostic();
     saveAssessmentResult(questionSet, attemptedIds, scopeId, isDiagnostic);
     sessionStorage.removeItem(ACTIVE_ASSESSMENT_KEY);
-    navigate(isDiagnostic ? '/assessment/results?diagnostic=true' : '/assessment/results');
+    navigate(isDiagnostic ? '/app/assessment/results?diagnostic=true' : '/app/assessment/results');
   }, [timeRemaining, phase, isDiagnostic, questionSet, attemptedIds, scopeId, navigate]);
 
   useEffect(() => {
@@ -148,13 +148,16 @@ export const Assessment: React.FC = () => {
     setCurrentQuestion(null);
     setQuestionSet([]);
     setAttemptedIds(new Set());
-    navigate('/');
+    navigate('/app');
   };
 
   const formatTime = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
-  const topicsBySource = topics.reduce<Record<string, Topic[]>>((groups, topic) => {
-    const source = topic.sourceTitle || 'Course topics';
-    (groups[source] ??= []).push(topic);
+  const topicsBySource = topics.reduce<Record<string, { sourceId?: string; sourceTitle: string; topics: Topic[] }>>((groups, topic) => {
+    const sourceTitle = topic.sourceTitle || 'Course topics';
+    const groupKey = topic.sourceId || `title:${sourceTitle}`;
+    const group = groups[groupKey] ?? { sourceId: topic.sourceId, sourceTitle, topics: [] };
+    group.topics.push(topic);
+    groups[groupKey] = group;
     return groups;
   }, {});
 
@@ -164,11 +167,11 @@ export const Assessment: React.FC = () => {
         learnerModelService.completeDiagnostic();
         saveAssessmentResult(questions, updatedAttemptedIds, scopeId, isDiagnostic);
         sessionStorage.removeItem(ACTIVE_ASSESSMENT_KEY);
-        navigate('/assessment/results?diagnostic=true');
+        navigate('/app/assessment/results?diagnostic=true');
       } else {
         saveAssessmentResult(questions, updatedAttemptedIds, scopeId, isDiagnostic);
         sessionStorage.removeItem(ACTIVE_ASSESSMENT_KEY);
-        navigate('/assessment/results');
+        navigate('/app/assessment/results');
       }
       return;
     }
@@ -179,11 +182,11 @@ export const Assessment: React.FC = () => {
         learnerModelService.completeDiagnostic();
         saveAssessmentResult(questions, updatedAttemptedIds, scopeId, isDiagnostic);
         sessionStorage.removeItem(ACTIVE_ASSESSMENT_KEY);
-        navigate('/assessment/results?diagnostic=true');
+        navigate('/app/assessment/results?diagnostic=true');
       } else {
         saveAssessmentResult(questions, updatedAttemptedIds, scopeId, isDiagnostic);
         sessionStorage.removeItem(ACTIVE_ASSESSMENT_KEY);
-        navigate('/assessment/results');
+        navigate('/app/assessment/results');
       }
       return;
     }
@@ -306,8 +309,8 @@ export const Assessment: React.FC = () => {
 
   if (phase === 'SETUP') {
     return (
-      <div className="animate-fade-in" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="nba-card" style={{ width: '100%', maxWidth: '600px' }}>
+      <div className="assessment-setup-shell animate-fade-in" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="nba-card assessment-setup-card" style={{ width: '100%', maxWidth: '600px' }}>
           <div className="nba-header">
             {isDiagnostic ? <Activity size={16} /> : <Brain size={16} />} 
             {isDiagnostic ? 'Initial Knowledge Check' : 'Adaptive Assessment Engine'}
@@ -318,28 +321,30 @@ export const Assessment: React.FC = () => {
           <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
             {isDiagnostic 
               ? 'This diagnostic will estimate your current knowledge to personalize your learning path. Immediate feedback will be hidden to maintain accuracy.'
-            : 'Choose a topic from your uploaded materials first. Questions will stay within that topic, and the engine will adapt as you answer.'}
+            : 'Choose all course materials, one complete PDF or lecture, or a topic. Questions will stay within your selection and adapt as you answer.'}
           </p>
 
           {startError && <p role="alert" style={{ marginBottom: 'var(--space-4)', color: 'var(--status-error)' }}>{startError}</p>}
 
           <div style={{ marginBottom: 'var(--space-6)' }}>
-            <label htmlFor="assessment-scope" style={{ display: 'block', marginBottom: 'var(--space-2)', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Which topic would you like to take a quiz on?</label>
+            <label htmlFor="assessment-scope" style={{ display: 'block', marginBottom: 'var(--space-2)', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>What should this assessment cover?</label>
             <select id="assessment-scope" value={scopeId} onChange={event => setScopeId(event.target.value)} style={{ width: '100%', padding: '12px', marginBottom: 'var(--space-5)', background: 'var(--bg-base)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)' }}>
-              <option value="" disabled>Choose a topic…</option>
-              <option value="ALL">All topics</option>
-              {Object.entries(topicsBySource).map(([sourceTitle, sourceTopics]) => (
-                <optgroup key={sourceTitle} label={sourceTitle}>
-                  {sourceTopics.map(topic => <option key={topic.id} value={topic.id}>{topic.name}</option>)}
+              <option value="" disabled>Choose an assessment scope…</option>
+              <option value="ALL">All course materials</option>
+              {Object.entries(topicsBySource).map(([groupKey, sourceGroup]) => (
+                <optgroup key={groupKey} label={sourceGroup.sourceTitle}>
+                  {sourceGroup.sourceId && <option value={`source:${sourceGroup.sourceId}`}>Entire source (PDF / lecture)</option>}
+                  {sourceGroup.topics.map(topic => <option key={topic.id} value={topic.id}>{topic.name}</option>)}
                 </optgroup>
               ))}
             </select>
             <label style={{ display: 'block', marginBottom: 'var(--space-2)', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Length</label>
-            <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+            <div className="assessment-length-options" style={{ display: 'flex', gap: 'var(--space-3)' }}>
               {[3, 5, 10, 15].map(n => (
                 <button 
                   key={n}
                   onClick={() => setQuestionCount(n)}
+                  className={`assessment-length-option${questionCount === n ? ' selected' : ''}`}
                   style={{ 
                     padding: 'var(--space-2) var(--space-4)', 
                     border: `1px solid ${questionCount === n ? 'var(--accent-primary)' : 'var(--border-strong)'}`,
@@ -370,7 +375,7 @@ export const Assessment: React.FC = () => {
   if (!currentQuestion) return null;
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', justifyContent: 'center', paddingTop: 'var(--space-8)' }}>
+    <div className="assessment-question-shell animate-fade-in" style={{ display: 'flex', justifyContent: 'center', paddingTop: 'var(--space-8)' }}>
       <div style={{ width: '100%', maxWidth: '800px', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
         
         {/* Header */}
@@ -390,7 +395,7 @@ export const Assessment: React.FC = () => {
         {timeRemaining !== null && <div role="timer" aria-label="Time remaining" style={{ alignSelf: 'flex-end', color: timeRemaining < 60 ? 'var(--status-error)' : 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>Time remaining: <strong>{formatTime(timeRemaining)}</strong></div>}
 
         {/* Question Card */}
-        <div className="panel-card" style={{ padding: 'var(--space-8)' }}>
+        <div className="panel-card assessment-question-card" style={{ padding: 'var(--space-8)' }}>
           <div style={{ marginBottom: 'var(--space-6)' }}>
             <span style={{ 
               display: 'inline-block', 
@@ -430,6 +435,7 @@ export const Assessment: React.FC = () => {
               return (
                 <button 
                   key={opt.id}
+                  className={`assessment-answer-option${isSelected ? ' selected' : ''}${showFeedback ? ' feedback' : ''}`}
                   onClick={() => phase === 'QUESTION' && setSelectedOptionId(opt.id)}
                   disabled={phase === 'FEEDBACK'}
                   style={{

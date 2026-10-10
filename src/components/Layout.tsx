@@ -15,20 +15,24 @@ import {
   X,
   BookOpen,
   AlertTriangle,
-  ArrowRight
+  ArrowRight,
+  CalendarDays,
+  Sparkles
 } from 'lucide-react';
 import { courseRepository } from '../services/courseRepository';
 import { learnerModelService } from '../services/learnerModelService';
 import type { Concept } from '../types/domain';
 
 const navItems = [
-  { path: '/', label: 'Overview', icon: LayoutDashboard },
-  { path: '/courses', label: 'My Courses', icon: Library },
-  { path: '/knowledge-map', label: 'Knowledge Map', icon: Network },
-  { path: '/tutor', label: 'AI Tutor', icon: Bot },
-  { path: '/assessment', label: 'Adaptive Assessment', icon: BrainCircuit },
-  { path: '/progress', label: 'Learning Progress', icon: Activity },
-  { path: '/evaluation', label: 'Evaluation & Benchmarks', icon: TrendingUp },
+  { path: '/', label: 'Product Home', icon: Sparkles },
+  { path: '/app', label: 'Overview', icon: LayoutDashboard },
+  { path: '/app/courses', label: 'My Courses', icon: Library },
+  { path: '/app/knowledge-map', label: 'Knowledge Map', icon: Network },
+  { path: '/app/tutor', label: 'AI Tutor', icon: Bot },
+  { path: '/app/assessment', label: 'Adaptive Assessment', icon: BrainCircuit },
+  { path: '/app/progress', label: 'Learning Progress', icon: Activity },
+  { path: '/app/study-plan', label: 'Study Plan', icon: CalendarDays },
+  { path: '/app/evaluation', label: 'Evaluation & Benchmarks', icon: TrendingUp },
 ];
 
 export const Layout: React.FC = () => {
@@ -52,7 +56,7 @@ export const Layout: React.FC = () => {
     const normalized = query.trim().toLocaleLowerCase();
     if (!normalized) return [];
     const routes = navItems.filter(item => item.label.toLocaleLowerCase().includes(normalized)).map(item => ({ label: item.label, detail: 'App section', to: item.path }));
-    const matches = concepts.filter(concept => concept.name.toLocaleLowerCase().includes(normalized)).slice(0, 8).map(concept => ({ label: concept.name, detail: 'Course concept', to: `/knowledge-map?concept=${encodeURIComponent(concept.id)}` }));
+    const matches = concepts.filter(concept => concept.name.toLocaleLowerCase().includes(normalized)).slice(0, 8).map(concept => ({ label: concept.name, detail: 'Course concept', to: `/app/knowledge-map?concept=${encodeURIComponent(concept.id)}` }));
     return [...routes, ...matches].slice(0, 10);
   }, [concepts, query]);
 
@@ -85,7 +89,7 @@ export const Layout: React.FC = () => {
                 key={item.path}
                 to={item.path} 
                 className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                end={item.path === '/'}
+                end={item.path === '/app' || item.path === '/'}
               >
                 <Icon size={18} />
                 <span>{item.label}</span>
@@ -94,7 +98,7 @@ export const Layout: React.FC = () => {
           })}
         </nav>
         <div className="sidebar-footer">
-          <button type="button" className="user-profile profile-link" onClick={() => navigate('/progress')} aria-label="Open learner profile and progress">
+          <button type="button" className="user-profile profile-link" onClick={() => navigate('/app/progress')} aria-label="Open learner profile and progress">
             <div className="avatar">AL</div>
             <div>
               <div style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-primary)' }}>Learner Profile</div>
@@ -119,11 +123,11 @@ export const Layout: React.FC = () => {
                 <div className="popover-heading"><strong>Learning reminders</strong><button className="icon-button small-icon-button" onClick={() => setNotificationsOpen(false)} aria-label="Close notifications"><X size={16} /></button></div>
                 {!notificationsEnabled ? <p className="popover-empty">Learning reminders are turned off. Enable them in Settings.</p>
                   : learningAlerts.length === 0 ? <p className="popover-empty">You’re all caught up. Practice results will surface topics that need another look.</p>
-                    : learningAlerts.slice(0, 5).map(alert => <button key={alert.id} className="notification-item" onClick={() => { setNotificationsOpen(false); navigate(`/knowledge-map?concept=${encodeURIComponent(alert.conceptId)}`); }}><AlertTriangle size={16} /><span><strong>{alert.title}</strong><small>{alert.detail}</small></span><ArrowRight size={14} /></button>)}
+                    : learningAlerts.slice(0, 5).map(alert => <button key={alert.id} className="notification-item" onClick={() => { setNotificationsOpen(false); navigate(`/app/knowledge-map?concept=${encodeURIComponent(alert.conceptId)}`); }}><AlertTriangle size={16} /><span><strong>{alert.title}</strong><small>{alert.detail}</small></span><ArrowRight size={14} /></button>)}
               </div>}
             </div>
             <button type="button" className="icon-button" onClick={() => { setSettingsOpen(true); setNotificationsOpen(false); }} aria-label="Settings" title="Settings"><Settings size={18} /></button>
-            <button type="button" className="icon-button profile-icon-button" onClick={() => navigate('/progress')} aria-label="Open learner profile" title="Learner profile"><UserRound size={18} /></button>
+            <button type="button" className="icon-button profile-icon-button" onClick={() => navigate('/app/progress')} aria-label="Open learner profile" title="Learner profile"><UserRound size={18} /></button>
           </div>
         </header>
         

@@ -44,7 +44,7 @@ export class PersistentVectorStore implements IVectorStore {
     }
   }
 
-  async search(queryVector: Vector, topK: number, filter?: { courseId?: string }): Promise<{ chunk: DocumentChunk; score: number; }[]> {
+  async search(queryVector: Vector, topK: number, filter?: { courseId?: string; sourceIds?: string[] }): Promise<{ chunk: DocumentChunk; score: number; }[]> {
     const res = await fetch(`${this.apiUrl}/query`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

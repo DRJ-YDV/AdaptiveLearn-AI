@@ -117,6 +117,8 @@ app.post('/api/gemini/generate', async (req, res) => {
       Personalization Instructions:
       - Mastery score: ${contextMetadata?.masteryScore || 'unknown'}.
       - Active misconceptions: ${contextMetadata?.activeMisconceptions ? JSON.stringify(contextMetadata.activeMisconceptions.map(m => m.misconceptionId)) : 'none'}.
+      - Current learning focus: ${contextMetadata?.focus || 'not specified'}.
+      - When the learner asks an ambiguous question such as "summarize this", interpret "this" as the current learning focus when one is provided. Prioritize that focus, and do not drift into unrelated topics from the course material.
       If they have a known misconception relevant to the answer, address it explicitly and correct it.
       If their mastery is low (<0.5), break the concept down into simpler terms.
     `;
@@ -698,7 +700,11 @@ app.post('/api/vector/query', async (req, res) => {
 
     let filteredDb = db;
     if (filter?.courseId) {
-      filteredDb = db.filter(item => item.chunk.metadata.courseId === filter.courseId);
+      filteredDb = filteredDb.filter(item => item.chunk?.metadata?.courseId === filter.courseId);
+    }
+    if (Array.isArray(filter?.sourceIds) && filter.sourceIds.length > 0) {
+      const sourceIds = new Set(filter.sourceIds.filter(id => typeof id === 'string'));
+      filteredDb = filteredDb.filter(item => sourceIds.has(item.chunk?.metadata?.sourceId));
     }
     
     const results = filteredDb

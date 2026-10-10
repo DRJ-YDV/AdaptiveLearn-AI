@@ -3,7 +3,7 @@ import { IEmbeddingProvider, Vector } from './embeddingProvider';
 
 export interface IVectorStore {
   add(chunks: DocumentChunk[]): Promise<void>;
-  search(queryVector: Vector, topK: number, filter?: { courseId?: string }): Promise<{ chunk: DocumentChunk; score: number }[]>;
+  search(queryVector: Vector, topK: number, filter?: { courseId?: string; sourceIds?: string[] }): Promise<{ chunk: DocumentChunk; score: number }[]>;
   clear(): Promise<void>;
   removeSource?(courseId: string, sourceTitle: string, keepSourceId: string): Promise<void>;
 }
@@ -33,19 +33,17 @@ export class InMemoryVectorStore implements IVectorStore {
     });
   }
 
-  async search(queryVector: Vector, topK: number, filter?: { courseId?: string }): Promise<{ chunk: DocumentChunk; score: number }[]> {
+  async search(queryVector: Vector, topK: number, filter?: { courseId?: string; sourceIds?: string[] }): Promise<{ chunk: DocumentChunk; score: number }[]> {
     if (this.chunks.length === 0) return [];
 
     const results = this.vectors.map((vec, idx) => {
       const score = this.cosineSimilarity(queryVector, vec);
       return { chunk: this.chunks[idx], score };
     }).filter(res => {
-      if (!filter || !filter.courseId) return true;
-      // In a real app we'd filter by chunk.courseId, but currently chunk.metadata doesn't have courseId.
-      // We will assume if courseId filter is passed, we check if it matches, or we allow all for now
-      // Let's add courseId to DocumentChunk metadata check if it exists
-      const chunkCourseId = (res.chunk.metadata as any).courseId;
-      return chunkCourseId === filter.courseId;
+      if (!filter) return true;
+      const chunkCourseId = res.chunk.metadata.courseId;
+      if (filter.courseId && chunkCourseId !== filter.courseId) return false;
+      return !filter.sourceIds?.length || filter.sourceIds.includes(res.chunk.metadata.sourceId);
     });
 
     results.sort((a, b) => b.score - a.score);

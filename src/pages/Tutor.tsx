@@ -1,10 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Book, Video, MonitorPlay, Send, Brain, AlertTriangle, ArrowRight, Lightbulb, Map } from 'lucide-react';
+import { Book, Video, MonitorPlay, Send, Brain, AlertTriangle, ArrowRight, Lightbulb, Map, Mic, MicOff, Volume2, Square } from 'lucide-react';
 import { tutorService } from '../services/tutorService';
 import { courseRepository } from '../services/courseRepository';
 import { learnerModelService } from '../services/learnerModelService';
 import { TutorMessage, SourceReference, Concept, Topic } from '../types/domain';
+
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type SpeechRecognitionWindow = Window & { SpeechRecognition?: new () => SpeechRecognitionLike; webkitSpeechRecognition?: new () => SpeechRecognitionLike };
 
 export const Tutor: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -17,6 +29,10 @@ export const Tutor: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [serviceStatus, setServiceStatus] = useState<'checking' | 'ready' | 'needs-key' | 'offline'>('checking');
+  const [isListening, setIsListening] = useState(false);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+  const [voiceError, setVoiceError] = useState('');
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   // Context State
   const [currentConcept, setCurrentConcept] = useState<Concept | null>(null);
@@ -29,6 +45,61 @@ export const Tutor: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => () => {
+    recognitionRef.current?.stop();
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  }, []);
+
+  const toggleVoiceInput = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+    const speechWindow = window as SpeechRecognitionWindow;
+    const SpeechRecognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setVoiceError('Voice input is not supported in this browser. You can still type your question.');
+      return;
+    }
+    setVoiceError('');
+    const recognition = new SpeechRecognition();
+    recognition.lang = navigator.language || 'en-US';
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.onresult = event => {
+      const transcript = Array.from(event.results).map(result => result[0]?.transcript ?? '').join(' ').trim();
+      if (transcript) setInputValue(current => current.trim() ? `${current.trim()} ${transcript}` : transcript);
+    };
+    recognition.onerror = event => {
+      setVoiceError(event.error === 'not-allowed' ? 'Microphone access was denied. Allow microphone access in your browser settings to use voice input.' : `Voice input stopped (${event.error}). You can type your question instead.`);
+      setIsListening(false);
+    };
+    recognition.onend = () => setIsListening(false);
+    recognitionRef.current = recognition;
+    try { recognition.start(); setIsListening(true); }
+    catch { setVoiceError('Could not start voice input. Check that your microphone is available.'); setIsListening(false); }
+  };
+
+  const toggleSpeechOutput = (message: TutorMessage) => {
+    if (!('speechSynthesis' in window)) {
+      setVoiceError('Audio playback is not supported in this browser.');
+      return;
+    }
+    setVoiceError('');
+    if (speakingMessageId === message.id) {
+      window.speechSynthesis.cancel();
+      setSpeakingMessageId(null);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(message.content);
+    utterance.onend = () => setSpeakingMessageId(null);
+    utterance.onerror = () => setSpeakingMessageId(null);
+    setSpeakingMessageId(message.id);
+    window.speechSynthesis.speak(utterance);
+  };
 
   useEffect(() => {
     fetch('http://localhost:3001/api/health')
@@ -79,7 +150,9 @@ export const Tutor: React.FC = () => {
       const response = await tutorService.ask(userMessage.content, {
         courseId: 'course_ml_101',
         userId: 'user_1',
-        conceptId: currentConcept?.id
+        conceptId: currentConcept?.id,
+        focus: [currentTopic?.name, currentConcept?.name].filter(Boolean).join(': ') || undefined,
+        sourceIds: currentConcept ? [...new Set(currentConcept.sourceReferences.map(reference => reference.sourceId))] : undefined
       });
 
       const tutorMessage: TutorMessage = {
@@ -142,14 +215,14 @@ export const Tutor: React.FC = () => {
 
   const handleAction = (action: any) => {
     if (action.type === 'VIEW_MAP') {
-      navigate('/knowledge-map');
+      navigate('/app/knowledge-map');
     } else if (action.type === 'REVIEW_PREREQ' && action.targetId) {
-      navigate(`/knowledge-map?concept=${action.targetId}`);
+      navigate(`/app/knowledge-map?concept=${action.targetId}`);
     }
   };
 
   return (
-    <div style={{ display: 'flex', height: '100%', gap: 'var(--space-6)' }} className="animate-fade-in">
+    <div style={{ display: 'flex', height: '100%', gap: 'var(--space-6)' }} className="tutor-dashboard animate-fade-in">
       {/* LEFT: Context */}
       <div style={{ width: '280px', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
         <div className="panel-card">
@@ -214,6 +287,9 @@ export const Tutor: React.FC = () => {
                 color: msg.role === 'USER' ? 'white' : 'var(--text-primary)'
               }}>
                 <p style={{ lineHeight: 1.6, fontSize: '0.95rem' }}>{msg.content}</p>
+                {msg.role === 'TUTOR' && <button type="button" className="btn-text" onClick={() => toggleSpeechOutput(msg)} aria-label={speakingMessageId === msg.id ? 'Stop reading answer aloud' : 'Read answer aloud'} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 'var(--space-2)' }}>
+                  {speakingMessageId === msg.id ? <Square size={14} /> : <Volume2 size={15} />}{speakingMessageId === msg.id ? 'Stop audio' : 'Listen'}
+                </button>}
 
                 {/* Evidence & Meta rendering for Tutor responses */}
                 {msg.responseMetadata && (
@@ -302,6 +378,8 @@ export const Tutor: React.FC = () => {
         </div>
 
         <div style={{ padding: 'var(--space-4)', borderTop: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-base)' }}>
+          {voiceError && <p role="status" style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', margin: '0 0 var(--space-2)' }}>{voiceError}</p>}
+          {isListening && <p role="status" style={{ color: 'var(--accent-secondary)', fontSize: '0.82rem', margin: '0 0 var(--space-2)' }}>Listening… Your transcript will appear here for review before you send it.</p>}
           <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
             <input 
               type="text" 
@@ -312,6 +390,9 @@ export const Tutor: React.FC = () => {
               disabled={isLoading}
               style={{ flex: 1, padding: '12px 16px', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-strong)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', outline: 'none' }}
             />
+            <button type="button" className="btn-secondary" onClick={toggleVoiceInput} disabled={isLoading} aria-label={isListening ? 'Stop voice input' : 'Start voice input'} title={isListening ? 'Stop voice input' : 'Ask by voice'} style={{ padding: '0 var(--space-3)', color: isListening ? 'var(--status-error)' : undefined }}>
+              {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+            </button>
             <button 
               onClick={handleSend}
               disabled={isLoading || !inputValue.trim()}

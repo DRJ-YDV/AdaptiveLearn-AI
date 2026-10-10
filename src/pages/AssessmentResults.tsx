@@ -61,7 +61,7 @@ export const AssessmentResults: React.FC = () => {
   if (!learnerModel || concepts.length === 0) return null;
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-6)' }}>
+    <div className="results-dashboard animate-fade-in" style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-6)' }}>
       <div style={{ width: '100%', maxWidth: '800px', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
         
         <div style={{ textAlign: 'center', marginBottom: 'var(--space-6)' }}>
@@ -107,14 +107,14 @@ export const AssessmentResults: React.FC = () => {
                 
                 <div style={{ marginTop: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                   <button 
-                    onClick={() => navigate(`/tutor?concept=${weakestConcept.c.id}`)}
+                    onClick={() => navigate(`/app/tutor?concept=${weakestConcept.c.id}`)}
                     className="btn-secondary" 
                     style={{ fontSize: '0.85rem', justifyContent: 'center' }}
                   >
                     <Bot size={14} /> Ask Tutor to explain
                   </button>
                   <button 
-                    onClick={() => navigate(`/knowledge-map?concept=${weakestConcept.c.id}`)}
+                    onClick={() => navigate(`/app/knowledge-map?concept=${weakestConcept.c.id}`)}
                     className="btn-text" 
                     style={{ fontSize: '0.85rem', justifyContent: 'center' }}
                   >
@@ -214,7 +214,7 @@ export const AssessmentResults: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 'var(--space-4)' }}>
-          <button className="btn-primary" onClick={() => navigate('/')}>
+          <button className="btn-primary" onClick={() => navigate('/app')}>
             Return to Dashboard
             <ArrowRight size={18} />
           </button>

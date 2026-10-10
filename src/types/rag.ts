@@ -31,6 +31,7 @@ export interface RetrievalQuery {
   topK: number;
   minSimilarity: number;
   courseId?: ID;
+  sourceIds?: ID[];
 }
 
 export interface RetrievalResponse {

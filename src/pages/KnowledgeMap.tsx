@@ -134,8 +134,8 @@ export const KnowledgeMap: React.FC = () => {
               <p>Upload course materials to build your knowledge map.</p>
             </div>
           ) : topics.filter(t => selectedTopicId === 'ALL' || t.id === selectedTopicId).map(topic => (
-            <div key={topic.id} style={{ marginBottom: 'var(--space-8)' }}>
-              <h3 style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-4)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 'var(--space-2)' }}>
+            <div className="map-topic-group" key={topic.id} style={{ marginBottom: 'var(--space-8)' }}>
+              <h3 className="map-topic-heading" style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-4)', borderBottom: '1px solid var(--border-subtle)', paddingBottom: 'var(--space-2)' }}>
                 {topic.name}
               </h3>
               
@@ -152,6 +152,11 @@ export const KnowledgeMap: React.FC = () => {
                   return (
                     <div 
                       key={concept.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={isSelected}
+                      onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelectedConceptId(isSelected ? null : concept.id); } }}
+                      className={`knowledge-concept-card${isSelected ? ' selected' : ''}${isPrereq ? ' prerequisite' : ''}${isDependent ? ' dependent' : ''}${isDimmed ? ' dimmed' : ''}`}
                       onClick={() => setSelectedConceptId(isSelected ? null : concept.id)}
                       style={{
                         padding: 'var(--space-3) var(--space-4)',
@@ -275,7 +280,7 @@ export const KnowledgeMap: React.FC = () => {
 
             <button 
               className="btn-primary" 
-              onClick={() => navigate(`/tutor?concept=${selectedConcept.id}`)}
+              onClick={() => navigate(`/app/tutor?concept=${selectedConcept.id}`)}
               style={{ width: '100%', justifyContent: 'center', marginTop: 'var(--space-4)' }}
             >
               <Bot size={18} />

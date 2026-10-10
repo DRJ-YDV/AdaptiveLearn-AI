@@ -12,6 +12,8 @@ export interface TutorContext {
   courseId: ID;
   userId: ID;
   conceptId?: ID;
+  focus?: string;
+  sourceIds?: ID[];
 }
 
 export interface ITutorService {

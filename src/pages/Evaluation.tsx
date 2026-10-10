@@ -205,7 +205,7 @@ export const Evaluation: React.FC = () => {
   );
 
   return (
-    <div className="animate-fade-in" style={{ padding: 'var(--space-6)', maxWidth: '1000px', margin: '0 auto' }}>
+    <div className="evaluation-dashboard animate-fade-in" style={{ padding: 'var(--space-6)', maxWidth: '1000px', margin: '0 auto' }}>
       <header style={{ marginBottom: 'var(--space-8)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', color: 'var(--accent-primary)', marginBottom: 'var(--space-2)' }}>

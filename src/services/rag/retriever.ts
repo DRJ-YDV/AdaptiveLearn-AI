@@ -10,7 +10,7 @@ export class Retriever {
 
   async retrieve(query: RetrievalQuery): Promise<RetrievalResponse> {
     const queryVector = await this.embeddingProvider.embedText(query.text);
-    const filter = query.courseId ? { courseId: query.courseId } : undefined;
+    const filter = query.courseId ? { courseId: query.courseId, sourceIds: query.sourceIds } : undefined;
     const results = await this.vectorStore.search(queryVector, query.topK, filter);
     
     // Filter by minSimilarity threshold

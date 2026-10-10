@@ -63,7 +63,7 @@ export const CourseIngestion: React.FC = () => {
   const failedFiles = job?.results.filter(r => r.status === 'FAILED').length || 0;
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-6)' }}>
+    <div className="course-dashboard animate-fade-in" style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-6)' }}>
       <div style={{ width: '100%', maxWidth: '800px', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
         
         <div style={{ textAlign: 'center', marginBottom: 'var(--space-4)' }}>
@@ -198,7 +198,7 @@ export const CourseIngestion: React.FC = () => {
                   <button className="btn-secondary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => { setJob(null); setFiles([]); }}>
                     Process More Files
                   </button>
-                  <button className="btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => navigate('/tutor')}>
+                  <button className="btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => navigate('/app/tutor')}>
                     Test in AI Tutor
                     <ArrowRight size={18} />
                   </button>

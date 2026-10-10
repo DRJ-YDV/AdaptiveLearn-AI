@@ -60,14 +60,14 @@ export const Overview: React.FC = () => {
 
   const executeAction = () => {
     if (!nba) return;
-    if (nba.action === 'ASK_TUTOR') navigate(`/tutor?concept=${nba.conceptId}`);
-    else if (nba.action === 'REVIEW_PREREQUISITE') navigate(`/knowledge-map?concept=${nba.conceptId}`);
-    else if (nba.action === 'PRACTICE_CONCEPT') navigate(`/assessment`);
-    else navigate(`/courses`);
+    if (nba.action === 'ASK_TUTOR') navigate(`/app/tutor?concept=${nba.conceptId}`);
+    else if (nba.action === 'REVIEW_PREREQUISITE') navigate(`/app/knowledge-map?concept=${nba.conceptId}`);
+    else if (nba.action === 'PRACTICE_CONCEPT') navigate(`/app/assessment`);
+    else navigate(`/app/courses`);
   };
 
   return (
-    <div className="dashboard-grid animate-fade-in">
+    <div className="dashboard-grid overview-dashboard animate-fade-in">
       <div className="main-column">
         
         <header style={{ marginBottom: 'var(--space-6)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -99,7 +99,7 @@ export const Overview: React.FC = () => {
                 Take a short diagnostic quiz to personalize your learning path. This will evaluate your current knowledge of prerequisites and core concepts. It won't affect your grade.
               </p>
               <div className="nba-actions">
-                <button className="btn-primary" onClick={() => navigate('/assessment?diagnostic=true')}>
+                <button className="btn-primary" onClick={() => navigate('/app/assessment?diagnostic=true')}>
                   <PlayCircle size={18} />
                   Start Diagnostic
                 </button>
@@ -161,7 +161,7 @@ export const Overview: React.FC = () => {
           <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Continue Learning</h3>
           
         <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
-            <div className="panel-card" onClick={() => navigate('/courses')} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 'var(--space-4)', cursor: 'pointer', transition: 'border-color 0.2s' }}>
+            <div className="panel-card" onClick={() => navigate('/app/courses')} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 'var(--space-4)', cursor: 'pointer', transition: 'border-color 0.2s' }}>
               <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-md)', backgroundColor: 'rgba(139, 92, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-secondary)' }}>
                 <BookOpen size={24} />
               </div>
@@ -198,7 +198,7 @@ export const Overview: React.FC = () => {
               );
             })}
           </div>
-          <button className="btn-secondary" onClick={() => navigate('/knowledge-map')} style={{ width: '100%', justifyContent: 'center', marginTop: 'var(--space-5)' }}>
+          <button className="btn-secondary" onClick={() => navigate('/app/knowledge-map')} style={{ width: '100%', justifyContent: 'center', marginTop: 'var(--space-5)' }}>
             View Knowledge Map
           </button>
         </div>

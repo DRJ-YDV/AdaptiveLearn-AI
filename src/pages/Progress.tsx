@@ -27,7 +27,7 @@ export const Progress: React.FC = () => {
   const activeMisconceptions = masteryStates.flatMap(state => state.activeMisconceptions.filter(item => !item.resolved));
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+    <div className="progress-dashboard animate-fade-in" style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
       <header>
         <h1 style={{ fontSize: '2rem', fontWeight: 700 }}>Learning Progress</h1>
         <p style={{ marginTop: 'var(--space-2)', color: 'var(--text-secondary)' }}>Your assessment history, mastery, and topics that need another look.</p>
