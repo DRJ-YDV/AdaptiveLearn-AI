@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Filter, RefreshCw, Book, Video, MonitorPlay, Bot, ZoomIn, ZoomOut, Maximize2, Expand, Minimize2, ChevronRight } from 'lucide-react';
+import { Search, Filter, RefreshCw, Book, Video, MonitorPlay, Bot, ZoomIn, ZoomOut, Maximize2, Minimize2, ChevronRight } from 'lucide-react';
 import { courseRepository } from '../services/courseRepository';
 import { Concept, Topic, LearnerModel, ID } from '../types/domain';
 
@@ -126,18 +126,38 @@ export const KnowledgeMap: React.FC = () => {
       .filter(group => group.concepts.length > 0);
     const conceptCardHeight = 84;
     const conceptRowStep = 76;
-    const topicNodes = visibleTopics.map(({ topic, concepts: topicConcepts }, groupIndex) => {
-      const cursorY = 52 + visibleTopics.slice(0, groupIndex).reduce((total, group) => total + Math.max(148, conceptCardHeight + (group.concepts.length - 1) * conceptRowStep + 44) + 24, 0);
-      const groupHeight = Math.max(148, conceptCardHeight + (topicConcepts.length - 1) * conceptRowStep + 44);
-      const topicY = cursorY + groupHeight / 2 - 39;
-      const cardStackHeight = conceptCardHeight + Math.max(0, topicConcepts.length - 1) * conceptRowStep;
-      const firstCardY = cursorY + (groupHeight - cardStackHeight) / 2;
-      topicConcepts.forEach((concept, index) => positions.set(concept.id, { x: 590, y: firstCardY + index * conceptRowStep }));
-      const node = { topic, y: topicY, centerY: topicY + 39, concepts: topicConcepts };
-      return node;
+    const documents = new Map<string, { title: string; topics: typeof visibleTopics }>();
+    visibleTopics.forEach(group => {
+      const key = group.topic.sourceId ?? 'course-materials';
+      const document = documents.get(key) ?? { title: group.topic.sourceTitle ?? 'Course materials', topics: [] };
+      document.topics.push(group);
+      documents.set(key, document);
     });
-    const height = Math.max(460, 60 + visibleTopics.reduce((total, group) => total + Math.max(148, conceptCardHeight + (group.concepts.length - 1) * conceptRowStep + 44) + 24, 0));
-    const topicEdges = topicNodes.map(node => ({ topicId: node.topic.id, startY: height / 2, endY: node.centerY }));
+    let cursorY = 52;
+    const documentNodes: Array<{ id: string; title: string; y: number; centerY: number }> = [];
+    const topicNodes: Array<{ topic: Topic; documentId: string; y: number; centerY: number; concepts: Concept[] }> = [];
+    for (const [documentId, document] of documents) {
+      const documentStartY = cursorY;
+      const topicLayouts = document.topics.map(group => ({
+        ...group,
+        height: Math.max(148, conceptCardHeight + (group.concepts.length - 1) * conceptRowStep + 44)
+      }));
+      const documentHeight = topicLayouts.reduce((total, group) => total + group.height + 20, 0) - 20;
+      topicLayouts.forEach(({ topic, concepts: topicConcepts, height: topicHeight }) => {
+        const topicY = cursorY + topicHeight / 2 - 39;
+        const cardStackHeight = conceptCardHeight + Math.max(0, topicConcepts.length - 1) * conceptRowStep;
+        const firstCardY = cursorY + (topicHeight - cardStackHeight) / 2;
+        topicConcepts.forEach((concept, index) => positions.set(concept.id, { x: 590, y: firstCardY + index * conceptRowStep }));
+        topicNodes.push({ topic, documentId, y: topicY, centerY: topicY + 39, concepts: topicConcepts });
+        cursorY += topicHeight + 20;
+      });
+      cursorY -= 20;
+      const documentY = documentStartY + documentHeight / 2 - 39;
+      documentNodes.push({ id: documentId, title: document.title, y: documentY, centerY: documentY + 39 });
+      cursorY += 36;
+    }
+    const height = Math.max(460, cursorY + 24);
+    const documentEdges = topicNodes.map(node => ({ documentId: node.documentId, startY: documentNodes.find(document => document.id === node.documentId)?.centerY ?? height / 2, endY: node.centerY }));
     const conceptEdges = topicNodes.flatMap(node => node.concepts.map(concept => ({
       topicId: node.topic.id,
       conceptId: concept.id,
@@ -148,7 +168,7 @@ export const KnowledgeMap: React.FC = () => {
     const prerequisiteEdges = selectedConceptId ? filteredConcepts.flatMap(concept => concept.prerequisites
       .filter(prerequisite => visibleIds.has(prerequisite.conceptId) && (concept.id === selectedConceptId || prerequisite.conceptId === selectedConceptId))
       .map(prerequisite => ({ from: prerequisite.conceptId, to: concept.id }))) : [];
-    return { positions, topicNodes, topicEdges, conceptEdges, prerequisiteEdges, width: 860, height };
+    return { positions, documentNodes, topicNodes, documentEdges, conceptEdges, prerequisiteEdges, width: 860, height };
   }, [filteredConcepts, topics, selectedTopicId, selectedConceptId]);
 
   const selectedConcept = concepts.find(c => c.id === selectedConceptId);
@@ -175,8 +195,8 @@ export const KnowledgeMap: React.FC = () => {
       <div className="map-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         
         {/* Toolbar */}
-        <div className="map-toolbar" style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'center', backgroundColor: 'var(--bg-surface)', padding: 'var(--space-3)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
+        <div className="map-toolbar" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', backgroundColor: 'var(--bg-surface)', padding: 'var(--space-3)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
+          <div className="map-search-control" style={{ position: 'relative', flex: 1 }}>
             <Search size={16} style={{ position: 'absolute', left: '12px', top: '10px', color: 'var(--text-tertiary)' }} />
             <input 
               type="text" 
@@ -187,7 +207,7 @@ export const KnowledgeMap: React.FC = () => {
             />
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <div className="map-topic-filter" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
             <Filter size={16} color="var(--text-tertiary)" />
             <select 
               value={selectedTopicId}
@@ -199,7 +219,7 @@ export const KnowledgeMap: React.FC = () => {
             </select>
           </div>
 
-          <button className="btn-secondary" onClick={handleReset} title="Reset Map">
+          <button className="btn-secondary map-reset-button" onClick={handleReset} title="Reset map" aria-label="Reset map">
             <RefreshCw size={16} />
           </button>
           <div className="map-zoom-controls" role="group" aria-label="Map view controls">
@@ -207,8 +227,11 @@ export const KnowledgeMap: React.FC = () => {
             <span>{Math.round(mapZoom * 100)}%</span>
             <button type="button" onClick={() => setMapZoom(value => Math.max(0.6, Number((value - 0.1).toFixed(1))))} aria-label="Zoom out" title="Zoom out"><ZoomOut size={16} /></button>
             <button type="button" onClick={() => setMapZoom(1)} aria-label="Reset zoom" title="Reset zoom"><Maximize2 size={15} /></button>
-            <button type="button" onClick={toggleMapFullscreen} aria-label={isMapFullscreen ? 'Exit full screen map' : 'Open full screen map'} title={isMapFullscreen ? 'Exit full screen' : 'Full screen'}>{isMapFullscreen ? <Minimize2 size={15} /> : <Expand size={15} />}</button>
           </div>
+          <button type="button" className="map-fullscreen-button" onClick={toggleMapFullscreen} aria-label={isMapFullscreen ? 'Exit full size map' : 'Expand map to full window'} title={isMapFullscreen ? 'Exit full size' : 'Expand to full window'}>
+            {isMapFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            <span>{isMapFullscreen ? 'Exit full size' : 'Full size'}</span>
+          </button>
           {isMapFullscreen && <span className="map-fullscreen-exit-hint">Press Esc to exit</span>}
         </div>
 
@@ -224,11 +247,11 @@ export const KnowledgeMap: React.FC = () => {
             <div className="map-empty-state"><Search size={22} /><strong>No concepts match</strong><span>Try another search or choose a different topic.</span></div>
           ) : (
             <>
-              <div className="map-graph-legend"><strong className="map-reading-guide">Follow the map <span>Course</span><b>→</b><span>Topic</span><b>→</b><span>Concept</span></strong><span><i className="mastery-strong" /> Strong</span><span><i className="mastery-developing" /> Developing</span><span><i className="mastery-weak" /> Needs practice</span><span className="map-legend-link"><b /> Prerequisite link appears when selected</span></div>
+              <div className="map-graph-legend"><strong className="map-reading-guide">Follow the map <span>PDF</span><b>→</b><span>Topic</span><b>→</b><span>Concept</span></strong><span><i className="mastery-strong" /> Strong</span><span><i className="mastery-developing" /> Developing</span><span><i className="mastery-weak" /> Needs practice</span><span className="map-legend-link"><b /> Prerequisite link appears when selected</span></div>
               <div className="map-graph-scroll" style={{ width: graph.width * mapZoom, height: graph.height * mapZoom }}>
                 <div className="map-graph-canvas" style={{ width: graph.width, height: graph.height, transform: `scale(${mapZoom})` }}>
                   <svg className="map-graph-edges" width={graph.width} height={graph.height} aria-hidden="true">
-                    {graph.topicEdges.map(edge => <path key={`course-${edge.topicId}`} className="map-tree-edge map-course-edge" d={`M 222 ${edge.startY} C 260 ${edge.startY}, 260 ${edge.endY}, 300 ${edge.endY}`} />)}
+                    {graph.documentEdges.map(edge => <path key={`document-${edge.documentId}-${edge.endY}`} className="map-tree-edge map-course-edge" d={`M 222 ${edge.startY} C 260 ${edge.startY}, 260 ${edge.endY}, 300 ${edge.endY}`} />)}
                     {graph.conceptEdges.map(edge => {
                       const conceptPosition = graph.positions.get(edge.conceptId)!;
                       const selectedBranch = !selectedConceptId || selectedTopicId === edge.topicId || edge.conceptId === selectedConceptId || prerequisites.has(edge.conceptId) || dependents.has(edge.conceptId);
@@ -240,7 +263,7 @@ export const KnowledgeMap: React.FC = () => {
                       return <path key={`prereq-${edge.from}-${edge.to}`} className="map-prerequisite-edge" d={`M 780 ${from.y + 42} C 845 ${from.y + 42}, 845 ${to.y + 42}, 780 ${to.y + 42}`} />;
                     })}
                   </svg>
-                  <div className="map-course-node" style={{ left: 32, top: graph.height / 2 - 39 }}><span>YOUR COURSE</span><strong>Learning map</strong><small>{filteredConcepts.length} concepts</small></div>
+                  {graph.documentNodes.map(document => <div key={document.id} className="map-source-node" style={{ left: 32, top: document.y }} title={document.title}><span>UPLOADED PDF</span><strong>{document.title}</strong><small>{graph.topicNodes.filter(node => node.documentId === document.id).length} topics</small></div>)}
                   {graph.topicNodes.map(({ topic, y, concepts: topicConcepts }) => <button type="button" key={`topic-${topic.id}`} className={`map-topic-node${selectedTopicId === topic.id ? ' topic-selected' : ''}`} style={{ left: 300, top: y }} onClick={() => { setSelectedTopicId(selectedTopicId === topic.id ? 'ALL' : topic.id); setSelectedConceptId(null); }} title={`Show only ${topic.name} concepts`} aria-label={`Show only ${topic.name}, ${topicConcepts.length} concepts`}>
                     <span>TOPIC · CLICK TO FOCUS</span><strong>{topic.name}</strong><small>{topicConcepts.length} concept{topicConcepts.length === 1 ? '' : 's'}<ChevronRight size={13} /></small>
                   </button>)}
@@ -296,7 +319,7 @@ export const KnowledgeMap: React.FC = () => {
       {/* Side Detail Panel */}
       <div className="map-detail-panel" style={{ width: detailWidth, flex: `0 0 ${detailWidth}px`, backgroundColor: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {selectedConcept ? (
-          <div className="animate-fade-in" style={{ padding: 'var(--space-5)', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          <div className="map-detail-content animate-fade-in" style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div className="map-concept-intro">
               <div className="map-concept-kicker"><span /> CONCEPT OVERVIEW</div>
               <h2>{selectedConcept.name}</h2>
@@ -319,7 +342,7 @@ export const KnowledgeMap: React.FC = () => {
               </div>
             )}
 
-            <div>
+            <div className="map-detail-section">
               <h4 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>Prerequisites</h4>
               {selectedConcept.prerequisites.length > 0 ? (
                 <ul style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
@@ -338,7 +361,7 @@ export const KnowledgeMap: React.FC = () => {
               )}
             </div>
 
-            <div>
+            <div className="map-detail-section">
               <h4 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>Depends on this</h4>
               {dependents.size > 0 ? (
                 <ul style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
@@ -357,7 +380,7 @@ export const KnowledgeMap: React.FC = () => {
               )}
             </div>
 
-            <div>
+            <div className="map-detail-section">
               <h4 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-3)' }}>Evidence</h4>
               {selectedConcept.sourceReferences.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>

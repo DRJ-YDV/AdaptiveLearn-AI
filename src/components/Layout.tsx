@@ -91,10 +91,12 @@ export const Layout: React.FC = () => {
               <NavLink 
                 key={item.path}
                 to={item.path} 
+                title={item.label}
+                aria-label={item.label}
                 className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                 end={item.path === '/app' || item.path === '/'}
               >
-                <Icon size={18} />
+                <Icon className="nav-icon" size={18} aria-hidden="true" />
                 <span>{item.label}</span>
               </NavLink>
             );

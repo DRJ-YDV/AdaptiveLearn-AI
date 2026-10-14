@@ -923,6 +923,14 @@ button:focus-visible, a:focus-visible { outline: 2px solid #b7adff; outline-offs
 .map-zoom-controls button { display: grid; place-items: center; width: 30px; height: 29px; color: var(--text-secondary); border-radius: 5px; transition: color .18s ease, background .18s ease, transform .18s ease; }
 .map-zoom-controls button:hover { color: #1a1d14; background: #c8ef83; transform: translateY(-1px); }
 .map-zoom-controls span { min-width: 39px; color: var(--text-tertiary); font-size: .68rem; font-variant-numeric: tabular-nums; text-align: center; }
+.map-toolbar { min-width: 0; gap: 8px !important; }
+.map-toolbar .map-search-control { min-width: 90px; flex: 1 1 150px !important; }
+.map-toolbar .map-topic-filter { min-width: 0; flex: 0 1 200px; }
+.map-toolbar .map-topic-filter select { width: 100%; min-width: 0; max-width: 200px; }
+.map-toolbar .map-reset-button { width: 40px; min-width: 40px; height: 40px; flex: 0 0 40px; padding: 8px !important; }
+.map-fullscreen-button { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 0 12px; color: var(--text-secondary); border: 1px solid var(--border-subtle); border-radius: 8px; background: rgba(0,0,0,.14); font-size: .75rem; font-weight: 600; white-space: nowrap; transition: color .18s ease, border-color .18s ease, background .18s ease; }
+.map-fullscreen-button:hover { color: #192011; border-color: #c8ef83; background: #c8ef83; }
+.map-fullscreen-button:focus-visible { outline: 2px solid #c8ef83; outline-offset: 2px; }
 .map-graph { position: relative; min-height: 480px; }
 .map-graph-legend { position: sticky; z-index: 4; top: -1px; display: flex; align-items: center; gap: 16px; width: max-content; max-width: 100%; margin: -15px 0 12px -15px; padding: 11px 14px; color: #a1a596; border: 1px solid rgba(222,232,206,.08); border-top: 0; border-left: 0; border-bottom-right-radius: 9px; background: rgba(18,20,16,.92); backdrop-filter: blur(12px); font-size: .65rem; }
 .map-graph-legend > span { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
@@ -967,11 +975,14 @@ button:focus-visible, a:focus-visible { outline: 2px solid #b7adff; outline-offs
 .map-topic-edge { stroke: rgba(213,220,196,.17); stroke-width: 1.5; }
 .map-topic-edge.branch-active { stroke: rgba(200,239,131,.47); }
 .map-prerequisite-edge { fill: none; stroke: #d2b774; stroke-width: 1.5; stroke-dasharray: 4 4; opacity: .9; }
-.map-course-node, .map-topic-node { position: absolute; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; width: 190px; height: 78px; padding: 11px 13px; border-radius: 9px; text-align: left; }
+.map-course-node, .map-source-node, .map-topic-node { position: absolute; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; width: 190px; height: 78px; padding: 11px 13px; border-radius: 9px; text-align: left; }
 .map-course-node { color: #18200f; border: 1px solid #c8ef83; background: linear-gradient(145deg, #d2f59a, #a9ce73); box-shadow: 0 8px 24px rgba(169,206,115,.12); }
-.map-course-node > span, .map-topic-node > span { font-size: .52rem; font-weight: 750; letter-spacing: .13em; }
+.map-source-node { color: #18200f; border: 1px solid #c8ef83; background: linear-gradient(145deg, #d2f59a, #a9ce73); box-shadow: 0 8px 24px rgba(169,206,115,.12); }
+.map-course-node > span, .map-source-node > span, .map-topic-node > span { font-size: .52rem; font-weight: 750; letter-spacing: .13em; }
 .map-course-node > strong { margin-top: 3px; font-size: .84rem; font-weight: 700; }
 .map-course-node > small { margin-top: 2px; color: #425034; font-size: .58rem; }
+.map-source-node > strong { display: -webkit-box; overflow: hidden; max-width: 100%; margin-top: 3px; font-size: .76rem; font-weight: 700; line-height: 1.2; text-overflow: ellipsis; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.map-source-node > small { margin-top: 2px; color: #425034; font-size: .58rem; }
 .map-topic-node { height: 78px; color: var(--text-primary); border: 1px solid rgba(200,239,131,.34); background: linear-gradient(145deg, rgba(47,54,36,.98), rgba(29,33,24,.98)); box-shadow: 0 7px 20px rgba(0,0,0,.2); cursor: pointer; transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease; }
 .map-topic-node > span { color: #a7ba82; }
 .map-topic-node > strong { display: -webkit-box; overflow: hidden; max-width: 100%; margin-top: 3px; font-size: .76rem; font-weight: 650; line-height: 1.25; text-overflow: ellipsis; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
@@ -1065,6 +1076,19 @@ button:focus-visible, a:focus-visible { outline: 2px solid #b7adff; outline-offs
   box-shadow: 0 18px 44px rgba(0,0,0,.24), inset 0 1px rgba(235,246,215,.035);
 }
 .map-detail-panel > .animate-fade-in { min-width: 0; }
+.map-detail-content {
+  gap: 20px;
+  padding: 22px 20px 24px;
+}
+.map-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.map-detail-section h4 { margin: 0 !important; }
+.map-detail-section ul { gap: 6px !important; }
+.map-detail-content > .map-concept-intro { padding: 2px 0 18px; }
+.map-detail-content > .btn-primary { margin-top: 0 !important; }
 .map-concept-intro {
   position: relative;
   padding: 4px 0 18px;
@@ -1125,6 +1149,7 @@ html, body, #root, *, *::before, *::after {
 @media (max-width: 900px) {
   .map-detail-resizer { display: none; }
   .map-detail-panel { flex: 0 0 auto !important; }
+  .map-detail-content { padding: 20px; gap: 18px; }
 }
 
 /* Final visual system pass: bring every app surface into the landing-page world. */
@@ -1224,6 +1249,55 @@ body { background: #10110f; }
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in, .overview-dashboard .side-panel .panel-card, .progress-dashboard > section, .evaluation-dashboard > section, .results-dashboard .nba-card { animation: none !important; }
   .nav-item, .btn-primary, .btn-secondary, .panel-card, .nba-card, .assessment-answer-option, .knowledge-concept-card { transition-duration: .01ms !important; }
+}
+
+/* Desktop navigation expands in the layout, leaving the page unobscured. */
+.nav-item > .nav-icon { display: block !important; flex: 0 0 20px; width: 20px !important; min-width: 20px; height: 20px !important; visibility: visible !important; opacity: 1 !important; color: #a2a69a !important; stroke: #a2a69a !important; stroke-width: 2.25px; }
+.nav-item.active > .nav-icon { color: #171a12 !important; stroke: #171a12 !important; }
+@media (min-width: 761px) and (hover: hover) {
+  .sidebar {
+    flex: 0 0 68px;
+    width: 68px;
+    overflow: hidden;
+    transition: flex-basis .26s ease, width .26s ease;
+  }
+  .sidebar:hover,
+  .sidebar:focus-within {
+    flex-basis: 260px;
+    width: 260px;
+  }
+  .sidebar-header { justify-content: center; padding-inline: 10px; }
+  .sidebar:hover .sidebar-header,
+  .sidebar:focus-within .sidebar-header { justify-content: flex-start; padding-inline: 16px; }
+  .sidebar:not(:hover):not(:focus-within) .landing-brand { gap: 0; font-size: 0; }
+  .sidebar:not(:hover):not(:focus-within) .landing-brand > span:last-child { display: none; }
+  .nav-links { padding-inline: 8px; }
+  .nav-item { min-width: 0; justify-content: flex-start; gap: 12px; padding-inline: 14px; overflow: hidden; white-space: nowrap; }
+  .nav-item > svg { flex: 0 0 18px; }
+  .nav-item > span { opacity: 1; transition: opacity .12s ease; }
+  .sidebar:not(:hover):not(:focus-within) .nav-item { justify-content: center; padding-inline: 0; }
+  .sidebar:not(:hover):not(:focus-within) .nav-item > span,
+  .sidebar:not(:hover):not(:focus-within) .profile-link > div:not(.avatar) { display: none; }
+  .sidebar-footer { padding: 14px 8px; overflow: hidden; }
+  .profile-link { justify-content: flex-start; gap: 12px; white-space: nowrap; }
+  .sidebar:not(:hover):not(:focus-within) .profile-link { justify-content: center; }
+  .main-content { min-width: 0; transition: flex-basis .26s ease; }
+  .page-container { min-width: 0; }
+}
+
+/* Touch layouts keep the icon rail compact, with labels available as tooltips. */
+@media (max-width: 760px), (hover: none) {
+  .sidebar { flex: 0 0 60px; width: 60px; overflow: hidden; }
+  .sidebar-header { justify-content: center; padding-inline: 8px; }
+  .sidebar .landing-brand { gap: 0; font-size: 0; }
+  .sidebar .landing-brand > span:last-child { display: none; }
+  .nav-links { padding-inline: 6px; }
+  .nav-item { justify-content: center; gap: 0; padding-inline: 0; }
+  .nav-item > span,
+  .profile-link > div:not(.avatar) { display: none; }
+  .sidebar-footer { padding: 12px 6px; }
+  .profile-link { justify-content: center; }
+  .main-content { min-width: 0; }
 }
 
 .mastery-overview-card { position: relative; overflow: hidden; border-color: rgba(200,239,131,.2); background: radial-gradient(ellipse at 100% 0%, rgba(200,239,131,.09), transparent 48%), linear-gradient(145deg, rgba(27,30,22,.98), rgba(18,20,16,.98)); }
