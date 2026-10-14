@@ -29,6 +29,11 @@ This checklist compares the current prototype with the supplied Multimodal AI Ha
 - **Mixed-language tutoring:** Implemented as English, Hindi, and Hindi-English Hinglish response choices in AI Tutor. Language instructions apply when Gemini mode is enabled; the deterministic mock provider remains English-only. Voice recognition and read-aloud use a matching browser language where supported.
 - **Project documentation:** Architecture, grounding, learner-model method, setup, and evaluation boundaries are in the root README.
 
+## AI tools used
+
+- **Google Gemini:** Runtime model provider for multimodal extraction, embeddings, tutoring, assessment generation, verification, and optional evaluation judging when configured.
+- **OpenAI Codex:** AI coding assistant used to help implement and document parts of the project.
+
 ## Local verification
 
 - `npm run build` — passes after the latest changes; Vite still reports a large JavaScript bundle warning.
