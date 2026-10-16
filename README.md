@@ -1,25 +1,25 @@
 # AdaptiveLearn AI
 
-**AdaptiveLearn AI is a course-grounded learning workspace that turns study materials into a connected path from understanding to practice.** Learners can explore concepts, ask questions with source evidence, take adaptive assessments, plan study sessions, and create revision materials in one place.
+**AdaptiveLearn AI is a multimodal, course-grounded learning workspace that turns study materials into a connected path from understanding to practice.** Bring in lecture videos, PDFs, slide decks, and text; then explore concepts, ask questions with source evidence, take adaptive assessments, plan study sessions, and create revision materials in one place.
 
 Built for the **2026 Multimodal AI Hackathon — Track D**.
 
 ## What it does
 
-- **Indexes course material:** Import PDF, PowerPoint, text, and Markdown sources. PDF pages and PowerPoint slides are analyzed with their text and supported visual content. Extracted content retains source locations for later review.
+- **Indexes course material:** Import lecture videos (`.mp4`, `.mov`, `.webm`), PDFs, PowerPoint decks (`.pptx`), text (`.txt`), and Markdown (`.md`). Video lectures are analyzed in five-minute windows to extract speech transcripts, important on-screen content, and concepts. PDF pages and PowerPoint slides are analyzed with their text and supported visual content. Indexed passages retain page, slide, section, or video time-range locations.
 - **Maps course knowledge:** Explore uploaded sources, topics, concepts, and prerequisite relationships in a knowledge map. Relationships appear when supported by extracted material.
-- **Answers with evidence:** Ask the AI Tutor questions across the course or about a selected source. Responses include excerpts and source locations; unsupported questions are identified instead of answered as fact. Gemini mode supports English, Hindi, and Hinglish.
+- **Answers with evidence:** Ask the AI Tutor questions across the course or about a selected source, including a specific lecture. Responses include excerpts and source locations; video evidence includes timestamps that help you return to the relevant moment. Unsupported questions are identified instead of answered as fact. Gemini mode supports English, Hindi, and Hinglish.
 - **Adapts assessment:** Start with a diagnostic or practice by course, topic, or source. Supported question types include multiple choice, short answer, and numerical problems. Generated questions are checked against their evidence, and learner responses update concept-level progress.
 - **Tracks learning:** Review mastery, confidence, misconceptions, recent answers, and recommended next actions across Overview and Learning Progress.
 - **Plans study time:** Build a schedule around an exam date, available weekdays, and a daily time budget. The plan prioritizes prerequisites and concepts with lower mastery, and tracks completed sessions.
-- **Creates revision materials:** Generate source-specific summaries, key points, and flashcards with evidence locations. Revision Kits can be downloaded as Markdown.
+- **Creates revision materials:** Generate source-specific summaries, key points, and flashcards from indexed course content, including lectures, with evidence locations. Revision Kits can be downloaded as Markdown.
 - **Evaluates quality:** Run a regression suite, review PDF benchmark drafts, inspect extraction labels, and export approved cases for RAGAS metrics.
 
 ## How the learning flow works
 
 ```mermaid
 flowchart LR
-    A[PDF, slides, text, Markdown] --> B[Extract content and source locations]
+    A[Video lectures, PDFs, slides, text, Markdown] --> B[Extract content and source locations]
     B --> C[Concepts and knowledge map]
     B --> D[Chunk and embed]
     D --> E[Local vector index]
@@ -38,8 +38,8 @@ flowchart LR
 
 ```text
 React + TypeScript client (Vite)
-  ├─ PDF.js and JSZip source parsing
-  ├─ Gemini-backed extraction, embeddings, tutor, and assessment
+  ├─ PDF.js and JSZip parsing; Gemini video, visual, and topic extraction
+  ├─ Gemini-backed embeddings, tutor, and assessment
   ├─ Browser localStorage: learner state, map data, plans, revision kits
   └─ Express API (port 3001)
        ├─ Gemini API proxy
@@ -47,7 +47,7 @@ React + TypeScript client (Vite)
        └─ server/data/sources/: uploaded source files
 ```
 
-The client extracts source content and keeps its page, slide, or section metadata as it is indexed. The configured Gemini embedding model creates vectors. The Express service persists vectors and original source files locally. Retrieval can be limited to the course or selected sources. Tutor evidence references are built from retrieved chunk metadata, so source labels and locations come from indexed material.
+The client extracts source content and keeps its page, slide, section, or timestamp metadata as it is indexed. Video files are sent through the Express API to Gemini and analyzed in five-minute windows; speech transcripts and descriptions of relevant visuals are indexed with their time ranges. The configured Gemini embedding model creates vectors. The Express service persists vectors and uploaded source files locally. Retrieval can be limited to the course or selected sources. Tutor evidence references are built from retrieved chunk metadata, so source labels and locations come from indexed material.
 
 The learner model uses deterministic mastery and confidence updates rather than Bayesian Knowledge Tracing. Assessment grading uses answer keys for multiple choice, required keywords for short answers, and a configured tolerance for numerical responses.
 
